@@ -41,10 +41,10 @@ pub fn encodeBuf(dest: []u8, src: []const u8) ![]const u8 {
         c.* = ALPHABET[value << (5 - @intCast(u3, bits_read))];
     }
 
-    {
-        var bits_read: usize = undefined;
-        _ = try reader.readBits(u5, 5, &bits_read);
-        std.debug.assert(bits_read == 0);
+    var bits_read: usize = undefined;
+    _ = try reader.readBits(u5, 5, &bits_read);
+    if (bits_read != 0) {
+        return error.NoSpaceLeft;
     }
 
     return dest;
@@ -89,7 +89,9 @@ pub fn calcEncodeDestLen(srcLen: usize) usize {
 pub export fn crockford_encodeBuf(destPtr: [*]u8, destLen: usize, srcPtr: [*]const u8, srcLen: usize) isize {
     const dest = destPtr[0..destLen];
     const src = srcPtr[0..srcLen];
-    const encoded = encodeBuf(dest, src) catch |err| switch (err) {};
+    const encoded = encodeBuf(dest, src) catch |err| switch (err) {
+        error.NoSpaceLeft => return -2,
+    };
     return @intCast(isize, encoded.len);
 }
 
